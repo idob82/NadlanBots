@@ -2,7 +2,6 @@ from Utils import BidResponse
 
 
 class Phase1StupidBot(object):
-
     def __init__(self, name):
         self.name = name
         self.money = 0

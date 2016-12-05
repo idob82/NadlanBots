@@ -1,15 +1,14 @@
 import random
 
-from numpy import sort
-
 from Phase1RandomBot import Phase1RandomBot
 from Phase1StupidBot import Phase1StupidBot
 
 from collections import defaultdict
+
 CARD_TAKEN = -1
-CARDS_TO_REMOVE=defaultdict(int)
+CARDS_TO_REMOVE = defaultdict(int)
 CARDS_TO_REMOVE[3] = 6
-STARTING_AMOUNT=defaultdict(int)
+STARTING_AMOUNT = defaultdict(int)
 STARTING_AMOUNT[3] = 24
 STARTING_AMOUNT[4] = 21
 
@@ -60,7 +59,8 @@ class NadlanBekatanGame(object):
         locations_chosen.sort()
         if verbose:
             print "START OF BIDDING ROUND. starting bot {}. Money: {}. locations: {}".format(starting_bot,
-                                                                                             bots_money, locations_chosen)
+                                                                                             bots_money,
+                                                                                             locations_chosen)
         bots_in_play = range(number_of_bots)
         bot_in_list_index = starting_bot
         current_bid = 0
@@ -112,7 +112,7 @@ class NadlanBekatanGame(object):
             index = random.randint(0, len(cheques) - 1)
             cheques_chosen.append(cheques[index])
             cheques.pop(index)
-        sort(cheques_chosen)
+        cheques_chosen.sort()
         if verbose:
             print "START OF BUYING ROUND. cheques: {}. available cards: {}".format(cheques_chosen, bots_cards)
 
@@ -146,13 +146,14 @@ class NadlanBekatanGame(object):
 
 game_server = NadlanBekatanGame()
 
+
 def tournament(bots, number_of_rounds=100):
     tournament_results = [0] * len(bots)
     # Do 100 rounds
     for i in range(number_of_rounds):
         winners = game_server.run_game(bots)
         for w in winners:
-            tournament_results[w] += 1.0/len(winners)
+            tournament_results[w] += 1.0 / len(winners)
     return tournament_results
 
 
@@ -172,5 +173,3 @@ print "Starting tournament", bots
 tournament_results = tournament(bots)
 for i in range(len(bots)):
     print bots[i], "won", tournament_results[i], "rounds"
-
-

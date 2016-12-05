@@ -3,7 +3,6 @@ import random
 
 
 class Phase1RandomBot(object):
-
     def __init__(self, name, random_level):
         self.name = name
         self.money = 0
