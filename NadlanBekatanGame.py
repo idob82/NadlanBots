@@ -1,8 +1,7 @@
+import inspect
+import os
 import random
-
-from Phase1RandomBot import Phase1RandomBot
-from Phase1StupidBot import Phase1StupidBot
-
+import sys
 from collections import defaultdict
 
 CARD_TAKEN = -1
@@ -157,19 +156,51 @@ def tournament(bots, number_of_rounds=100):
     return tournament_results
 
 
-bots = [Phase1StupidBot("Danny"), Phase1StupidBot("OtherDanny"), Phase1RandomBot("NotDanny", 0.4)]
-winner = game_server.run_game(bots, verbose=True)
+def get_all_player_classes():
+    all_players = []
+    for module in os.listdir(os.path.join(os.path.dirname(__file__), "players")):
+        if module == '__init__.py' or module[-3:] != '.py':
+            continue
+        player_module_name = "players." + module[:-3]
+        all_players.append(player_module_name)
+        __import__(player_module_name, locals(), globals())
 
-print "Winners for first game are:", winner
+    player_classes = [get_primary_class_in_module(module_name) for module_name in all_players]
+    player_classes = [x for x in player_classes if not inspect.isabstract(x)]
+    return player_classes
 
-print "Starting tournament", bots
-tournament_results = tournament(bots)
-for i in range(len(bots)):
-    print bots[i], "won", tournament_results[i], "rounds"
 
-bots = [Phase1StupidBot("Danny"), Phase1RandomBot("OtherNotDanny", 0.4), Phase1RandomBot("NotDanny", 0.4)]
+def get_primary_class_in_module(module_name):
+    module = sys.modules[module_name]
+    all_objects = inspect.getmembers(module,
+                                     lambda member: inspect.isclass(member) and member.__module__ == module_name)
+    assert len(all_objects) == 1
+    return all_objects[0][1]
 
-print "Starting tournament", bots
-tournament_results = tournament(bots)
-for i in range(len(bots)):
-    print bots[i], "won", tournament_results[i], "rounds"
+
+def create_player_instances(player_classes):
+    return [x() for x in player_classes]
+
+
+def main():
+    player_classes = get_all_player_classes()
+    players = create_player_instances(player_classes)
+    winner = game_server.run_game(players, verbose=True)
+
+    print "Winners for first game are:", winner
+
+    print "Starting tournament", players
+    tournament_results = tournament(players)
+    for i in range(len(players)):
+        print players[i], "won", tournament_results[i], "rounds"
+
+    players = create_player_instances(player_classes)
+
+    print "Starting tournament", players
+    tournament_results = tournament(players)
+    for i in range(len(players)):
+        print players[i], "won", tournament_results[i], "rounds"
+
+
+if __name__ == "__main__":
+    sys.exit(main())
