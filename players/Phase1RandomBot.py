@@ -1,4 +1,4 @@
-from Utils import BidResponse
+from utils import BidResponse
 import random
 
 from players.playerbase import PlayerBase
