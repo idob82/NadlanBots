@@ -10,7 +10,6 @@ from utils import PlayerState, TurnStatus
 CARDS_TO_REMOVE = defaultdict(int)
 CARDS_TO_REMOVE[4] = 2
 
-
 STARTING_AMOUNT = {3: 28, 4: 21, 5: 16, 6: 14}
 
 
@@ -74,7 +73,7 @@ class NadlanBekatanGame(object):
             winner_index = self.buying_round(locations, players_order)
             assert winner_index >= 0
             assert winner_index < len(players_order)
-            self.rotate_list(players_order, winner_index)
+            players_order = self.rotate_list(players_order, winner_index)
 
         for player in self.__players:
             player.on_end_buying_phase(self.get_read_only_state(player))
@@ -101,7 +100,7 @@ class NadlanBekatanGame(object):
                              self.__player_states.iteritems()])
         winners = self.keys_with_max_value(total_assets)
         if len(winners) > 1:
-            winners_money = dict([(player_id, self.__player_states[player_id].money) for player_id, in winners])
+            winners_money = dict([(player_id, self.__player_states[player_id].money) for player_id in winners])
             winners = self.keys_with_max_value(winners_money)
         return winners
 
@@ -157,7 +156,7 @@ class NadlanBekatanGame(object):
                     winner_index = player_index
                     break
 
-                assert len(locations_chosen) > 0  # Should not have active players with no more cards
+                assert len(locations_chosen) > 1  # Should not have active players with no more cards
 
                 bid_response = current_player.bid(self.get_read_only_state(current_player),
                                                   self.create_read_only_copy(locations_chosen),
@@ -270,8 +269,12 @@ def tournament(players, number_of_games=100):
         game_server = NadlanBekatanGame(players, current_game_number=game_number, total_games=number_of_games)
         winners = game_server.run_game()
         for winner_id in winners:
+            if len(winners) == 1:
+                win_addition = 1
+            else:
+                win_addition = 1.0 / len(winners)
             assert winner_id in tournament_results
-            tournament_results[winner_id] += 1.0 / len(winners)
+            tournament_results[winner_id] += win_addition
     return tournament_results
 
 
@@ -281,7 +284,7 @@ def get_all_player_classes():
     """
     all_players = []
     for module in os.listdir(os.path.join(os.path.dirname(__file__), "players")):
-        if module == '__init__.py' or module[-3:] != '.py':
+        if module == "__init__.py" or module[-3:] != ".py":
             continue
         player_module_name = "players." + module[:-3]
         all_players.append(player_module_name)
@@ -310,22 +313,23 @@ def create_player_instances(player_classes):
     :rtype: list[playerbase.PlayerBase]
     """
     result = [x() for x in player_classes]
+    random.shuffle(result)
     return result
 
 
 def main():
     player_classes = get_all_player_classes()
-    players = create_player_instances(player_classes)
-    game_server = NadlanBekatanGame(players, verbose=True)
-    winners = game_server.run_game()
-
-    print "Winners for first game are:", winners
-
     # players = create_player_instances(player_classes)
-    # print "Starting tournament", players
-    # tournament_results = tournament(players)
-    # for (player_id, win_count) in tournament_results.iteritems():
-    #     print player_id, "won", win_count, "games"
+    # game_server = NadlanBekatanGame(players, verbose=True)
+    # winners = game_server.run_game()
+    #
+    # print "Winners for first game are:", winners
+
+    players = create_player_instances(player_classes)
+    print "Starting tournament with", players
+    tournament_results = tournament(players)
+    for (player_id, win_count) in tournament_results.iteritems():
+        print "'{}' won {} games".format(player_id, win_count)
 
 
 if __name__ == "__main__":

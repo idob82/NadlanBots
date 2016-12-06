@@ -7,7 +7,7 @@ class Phase1StupidBot(PlayerBase):
         return "Stupid bot"
 
     def bid(self, player_state, available_locations, current_bid_by_player_id, current_highest_bid):
-        if (len(available_locations) == 1) or (current_highest_bid >= player_state.money):
+        if current_highest_bid >= player_state.money:
             return BidResponse(forfeit=True)
         return BidResponse(bid=current_highest_bid + 1)
 
