@@ -5,18 +5,21 @@ class PlayerBase(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        self._my_id = str(self)
+        self.__my_id = str(self)
         """:type : str"""
         self._current_game_number = None
         """:type : int"""
         self._total_games = None
         """:type : int"""
         self._all_player_ids = None
+        """:type : set[str]"""
+        self._players_order = None
         """:type : list[str]"""
-        self._player_id_to_index = None
-        """:type : dict[str, int]"""
         self._my_bidding_index = None
         """:type : int"""
+
+    def get_id(self):
+        return self.__my_id
 
     def __repr__(self):
         return str(self)
@@ -31,19 +34,19 @@ class PlayerBase(object):
     def on_game_start(self, player_state, current_game_number, total_games, all_player_ids):
         """
         Called at the start of a new game
-        :param player_state: An immutable copy of the current player state
+        :param player_state: An immutable copy of the current player state, of type PlayerState
         :type player_state: utils.PlayerState
         :param current_game_number: The current game number (one based)
         :type current_game_number: int
         :param total_games: The total number of games to be played
         :type total_games: int
         :param all_player_ids: An unsorted list of all the participating players
-        :type all_player_ids: list[str]
+        :type all_player_ids: set[str]
         """
         self._current_game_number = current_game_number
         self._total_games = total_games
         self._all_player_ids = all_player_ids
-        self._player_id_to_index = None
+        self._players_order = None
         self._my_bidding_index = None
 
     #
@@ -58,16 +61,16 @@ class PlayerBase(object):
         """
         pass
 
-    def on_start_buying_round(self, player_state, player_id_to_index):
+    def on_start_buying_round(self, player_state, players_order):
         """
         Called at the start of a new buying round
         :param player_state: An immutable copy of the current player state
         :type player_state: utils.PlayerState
-        :param player_id_to_index: A mapping of players IDs to bidding indexes (zero based) for the current round
-        :type player_id_to_index: dict[str, int]
+        :param players_order: List of player IDs sorted by bidding order for the current round
+        :type players_order: list[str]
         """
-        self._player_id_to_index = player_id_to_index
-        self._my_bidding_index = player_id_to_index[self._my_id]
+        self._players_order = players_order
+        self._my_bidding_index = players_order.index(self.get_id())
 
     @abstractmethod
     def bid(self, player_state, available_locations, current_bid_by_player_id, current_highest_bid):
