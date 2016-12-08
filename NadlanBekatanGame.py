@@ -96,10 +96,11 @@ class NadlanBekatanGame(object):
             print "Players state after selling phase: ", self.__player_states
 
         # Calculate winners
-        total_assets = dict([(player_id, state.money + sum(state.cards) + sum(state.cheques)) for (player_id, state) in
+        total_assets = dict([(player_id, state.money + sum(state.cheques)) for (player_id, state) in
                              self.__player_states.iteritems()])
         winners = self.keys_with_max_value(total_assets)
         if len(winners) > 1:
+            # On total money draw, the player with more cash wins.
             winners_money = dict([(player_id, self.__player_states[player_id].money) for player_id in winners])
             winners = self.keys_with_max_value(winners_money)
         return winners
@@ -123,7 +124,6 @@ class NadlanBekatanGame(object):
         for player in self.__players:
             player.on_start_buying_round(self.get_read_only_state(player), self.create_read_only_copy(player_ids_order))
 
-        winner_index = None
         round_history = []
         active_players_by_order = [x for x in players_order]
         current_bid_by_player_id = dict([(player_id, 0) for player_id in self.__all_player_ids])
@@ -138,57 +138,17 @@ class NadlanBekatanGame(object):
                 current_player_id = current_player.get_id()
 
                 if len(locations_chosen) == 1:
-                    # Only one card left, meaning only one player left, and they pay the full price and get the
-                    # highest card
-                    assert len([x for x in active_players_by_order if x is not None]) == 1
-                    highest_location = locations_chosen.pop()
-
-                    self.__player_states[current_player_id].money -= current_bid_by_player_id[current_player_id]
-                    self.__player_states[current_player_id].cards.append(highest_location)
-
-                    active_players_by_order[player_index] = None
-
-                    turn_stats[player_index] = TurnStatus(current_player_id, None, highest_location)
-
-                    current_player.on_buy(self.get_read_only_state(current_player),
-                                          highest_location,
-                                          current_bid_by_player_id[current_player_id])
+                    # Give the last card to the last active player
+                    self.handle_last_location(active_players_by_order, current_bid_by_player_id,
+                                                         current_player, current_player_id, locations_chosen,
+                                                         player_index, turn_stats)
                     winner_index = player_index
                     break
 
                 assert len(locations_chosen) > 1  # Should not have active players with no more cards
 
-                bid_response = current_player.bid(self.get_read_only_state(current_player),
-                                                  self.create_read_only_copy(locations_chosen),
-                                                  self.create_read_only_copy(current_bid_by_player_id),
-                                                  max(current_bid_by_player_id.itervalues()))
-                if bid_response.forfeit:
-                    # The player forfeits, give them the lowest location card and kick them out of this round
-                    smallest_location = locations_chosen.pop()
-                    price = current_bid_by_player_id[current_player_id] / 2
-
-                    self.__player_states[current_player_id].money -= price
-                    self.__player_states[current_player_id].cards.append(smallest_location)
-
-                    active_players_by_order[player_index] = None
-                    current_bid_by_player_id[current_player_id] = None
-                    turn_stats[player_index] = TurnStatus(current_player_id, None, smallest_location)
-
-                    current_player.on_buy(self.get_read_only_state(current_player),
-                                          smallest_location,
-                                          price)
-                else:
-                    # Make sure they can buy it
-                    if bid_response.value > self.__player_states[current_player_id].money:
-                        raise Exception("Player attempted to bid more money than they have! Bid: {}, have: {}"
-                                        .format(bid_response.value, self.__player_states[current_player_id].money))
-                    if bid_response.value <= max(current_bid_by_player_id.itervalues()):
-                        raise Exception("Player attempted to bid less than the current high bid! Bid: {}, currently: {}"
-                                        .format(bid_response.value, max(current_bid_by_player_id.itervalues())))
-
-                    current_bid_by_player_id[current_player_id] = bid_response.value
-                    turn_stats[player_index] = TurnStatus(current_player_id, bid_response.value, None)
-
+                self._handle_player_bid(active_players_by_order, current_bid_by_player_id, current_player,
+                                        current_player_id, locations_chosen, player_index, turn_stats)
             round_history.append(turn_stats)
 
         assert all([x is None for x in active_players_by_order])
@@ -199,6 +159,53 @@ class NadlanBekatanGame(object):
             player.on_end_buying_round(self.get_read_only_state(player), round_history)
 
         return winner_index
+
+    def handle_last_location(self, active_players_by_order, current_bid_by_player_id, current_player, current_player_id,
+                             locations_chosen, player_index, turn_stats):
+        # Only one card left, meaning only one player left, and they pay the full price and get the
+        # highest card
+        assert len([x for x in active_players_by_order if x is not None]) == 1
+        highest_location = locations_chosen.pop()
+        self.__player_states[current_player_id].money -= current_bid_by_player_id[current_player_id]
+        self.__player_states[current_player_id].cards.append(highest_location)
+        active_players_by_order[player_index] = None
+        turn_stats[player_index] = TurnStatus(current_player_id, current_bid_by_player_id[current_player_id], highest_location)
+        current_player.on_buy(self.get_read_only_state(current_player),
+                              highest_location,
+                              current_bid_by_player_id[current_player_id])
+
+    def _handle_player_bid(self, active_players_by_order, current_bid_by_player_id, current_player, current_player_id,
+                           locations_chosen, player_index, turn_stats):
+        bid_response = current_player.bid(self.get_read_only_state(current_player),
+                                          self.create_read_only_copy(locations_chosen),
+                                          self.create_read_only_copy(current_bid_by_player_id),
+                                          max(current_bid_by_player_id.itervalues()))
+        if bid_response.forfeit:
+            # The player forfeits, give them the lowest location card and kick them out of this round
+            smallest_location = locations_chosen.pop()
+            price = current_bid_by_player_id[current_player_id] / 2
+
+            self.__player_states[current_player_id].money -= price
+            self.__player_states[current_player_id].cards.append(smallest_location)
+
+            active_players_by_order[player_index] = None
+            current_bid_by_player_id[current_player_id] = None
+            turn_stats[player_index] = TurnStatus(current_player_id, price, smallest_location)
+
+            current_player.on_buy(self.get_read_only_state(current_player),
+                                  smallest_location,
+                                  price)
+        else:
+            # Make sure they can buy it
+            if bid_response.value > self.__player_states[current_player_id].money:
+                raise Exception("Player attempted to bid more money than they have! Bid: {}, have: {}"
+                                .format(bid_response.value, self.__player_states[current_player_id].money))
+            if bid_response.value <= max(current_bid_by_player_id.itervalues()):
+                raise Exception("Player attempted to bid less than the current high bid! Bid: {}, currently: {}"
+                                .format(bid_response.value, max(current_bid_by_player_id.itervalues())))
+
+            current_bid_by_player_id[current_player_id] = bid_response.value
+            turn_stats[player_index] = TurnStatus(current_player_id, bid_response.value, None)
 
     def selling_round(self, cheques):
         """
@@ -254,83 +261,3 @@ class NadlanBekatanGame(object):
         """
         return copy.deepcopy(value)
 
-
-def tournament(players, number_of_games=100):
-    """
-    :type players: list[playerbase.PlayerBase]
-    :type number_of_games: int
-    :rtype: dict[str, float]
-    """
-    all_player_ids = [x.get_id() for x in players]
-    tournament_results = dict([(player_id, 0) for player_id in all_player_ids])
-
-    # Do 100 rounds
-    for game_number in xrange(1, number_of_games + 1):
-        game_server = NadlanBekatanGame(players, current_game_number=game_number, total_games=number_of_games)
-        winners = game_server.run_game()
-        for winner_id in winners:
-            if len(winners) == 1:
-                win_addition = 1
-            else:
-                win_addition = 1.0 / len(winners)
-            assert winner_id in tournament_results
-            tournament_results[winner_id] += win_addition
-    return tournament_results
-
-
-def get_all_player_classes():
-    """
-    :rtype: list[type]
-    """
-    all_players = []
-    for module in os.listdir(os.path.join(os.path.dirname(__file__), "players")):
-        if module == "__init__.py" or module[-3:] != ".py":
-            continue
-        player_module_name = "players." + module[:-3]
-        all_players.append(player_module_name)
-        __import__(player_module_name, locals(), globals())
-
-    player_classes = [get_primary_class_in_module(module_name) for module_name in all_players]
-    player_classes = [x for x in player_classes if not inspect.isabstract(x)]
-    return player_classes
-
-
-def get_primary_class_in_module(module_name):
-    """
-    :type module_name: str
-    :rtype: type
-    """
-    module = sys.modules[module_name]
-    all_objects = inspect.getmembers(module,
-                                     lambda member: inspect.isclass(member) and member.__module__ == module_name)
-    assert len(all_objects) == 1
-    return all_objects[0][1]
-
-
-def create_player_instances(player_classes):
-    """
-    :type player_classes: list[type]
-    :rtype: list[playerbase.PlayerBase]
-    """
-    result = [x() for x in player_classes]
-    random.shuffle(result)
-    return result
-
-
-def main():
-    player_classes = get_all_player_classes()
-    # players = create_player_instances(player_classes)
-    # game_server = NadlanBekatanGame(players, verbose=True)
-    # winners = game_server.run_game()
-    #
-    # print "Winners for first game are:", winners
-
-    players = create_player_instances(player_classes)
-    print "Starting tournament with", players
-    tournament_results = tournament(players)
-    for (player_id, win_count) in tournament_results.iteritems():
-        print "'{}' won {} games".format(player_id, win_count)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
