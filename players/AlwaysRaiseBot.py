@@ -2,9 +2,9 @@ from playerbase import PlayerBase
 from utils import BidResponse
 
 
-class Phase1AlwaysBuyBot(PlayerBase):
+class AlwaysRaiseBot(PlayerBase):
     def __str__(self):
-        return "Always buy bot"
+        return "Always Raise Bot"
 
     def bid(self, player_state, available_locations, current_bid_by_player_id, current_highest_bid):
         if current_highest_bid >= player_state.money:
