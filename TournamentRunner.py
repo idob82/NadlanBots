@@ -17,7 +17,7 @@ class TournamentRunner(object):
         self.player_classes = player_classes
         self.verbose = verbose
 
-    def tournament(self, number_of_players=3, number_of_games=50, number_of_tournaments=100):
+    def tournament(self, number_of_players=3, number_of_games=50, number_of_tournaments=None):
         """
         :type number_of_players: int
         :type number_of_games: int
@@ -54,7 +54,7 @@ class TournamentRunner(object):
                     matchups[player1][player2] += tournament_results.get(player1, 0)
 
         if self.verbose:
-            print "Finished {} tournaments for {} players.".format(number_of_tournaments, number_of_players)
+            print "Finished {} tournaments for {} players.".format(tournament_index + 1, number_of_players)
             for player_id, score in global_results.iteritems():
                 print "Player: {}. Score: {}. Number of tournaments: {}".format(player_id, score, tournament_count[player_id])
             print
