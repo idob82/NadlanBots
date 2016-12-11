@@ -20,7 +20,7 @@ class LimitBasedBot(PlayerBase):
 
     def bid(self, player_state, available_locations, current_bid_by_player_id, current_highest_bid):
         """ MUST """
-        
+
 
 
         if  current_highest_bid >= player_state.money:
