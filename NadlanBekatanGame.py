@@ -182,7 +182,7 @@ class NadlanBekatanGame(object):
                                           max(current_bid_by_player_id.itervalues()))
         if bid_response.forfeit:
             # The player forfeits, give them the lowest location card and kick them out of this round
-            smallest_location = locations_chosen.pop()
+            smallest_location = locations_chosen.pop(0)
             price = current_bid_by_player_id[current_player_id] / 2
 
             self.__player_states[current_player_id].money -= price
