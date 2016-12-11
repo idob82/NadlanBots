@@ -1,4 +1,5 @@
 *.iml
+.idea/
 workspace.xml
 
 # Byte-compiled / optimized / DLL files
