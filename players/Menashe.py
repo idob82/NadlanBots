@@ -12,9 +12,7 @@ class MenasheBot(PlayerBase):
         return "The one to rule them all"
 
     def bid(self, player_state, available_locations, current_bid_by_player_id, current_highest_bid):
-
-
-        if len(available_locations) == 3 and available_locations[0] >= 14:
+        if len(available_locations) == 3 and available_locations[0] >= 19:
             return BidResponse(forfeit=True)
 
         if current_highest_bid <= available_locations[-1] - 15:
