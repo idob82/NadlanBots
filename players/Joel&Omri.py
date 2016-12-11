@@ -20,6 +20,9 @@ class TestBot(PlayerBase):
 		self.__min_raise_limit = player_state.money / 20
 
 	def bid(self, player_state, available_locations, current_bid_by_player_id, current_highest_bid):
+		self.__max_raise_limit = player_state.money / 5
+		self.__med_raise_limit = player_state.money / 10
+		self.__min_raise_limit = player_state.money / 15
 		highest_card = max(available_locations)
 		lowest_card = min(available_locations)
 		if highest_card - lowest_card <= self.__max_take_difference:
