@@ -2,6 +2,7 @@ from playerbase import PlayerBase
 from utils import BidResponse
 import random
 
+
 class NotImplemnted(PlayerBase):
     def __str__(self):
         return "Not Implemented Bot"
@@ -9,7 +10,8 @@ class NotImplemnted(PlayerBase):
     def bid(self, player_state, available_locations, current_bid_by_player_id, current_highest_bid):
         if current_highest_bid >= player_state.money or \
                 (len(player_state.cards) > 0 and max(available_locations) < sum(player_state.cards) / len(player_state.cards)) or \
-                (len(player_state.cards) > 0 and min(available_locations) > sum(player_state.cards) / len(player_state.cards)):
+                (len(player_state.cards) > 0 and min(available_locations) > sum(player_state.cards) / len(player_state.cards)) or \
+                current_highest_bid >= 10:
             return BidResponse(forfeit=True)
         return BidResponse(bid=current_highest_bid + 1)
 
@@ -19,7 +21,7 @@ class NotImplemnted(PlayerBase):
         max_cheque = max(available_cheques)
         if max_cheque > 10:
             return self._best_match(player_state.cards, sorted_cheques[2])
-        if max_cheque < 3:
+        elif max_cheque < 3:
             return self._best_match(player_state.cards, sorted_cheques[0])
         else:
             return self._best_match(player_state.cards, sorted_cheques[1])
