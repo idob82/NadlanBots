@@ -27,6 +27,7 @@ class TournamentRunner(object):
         global_results = defaultdict(int)
         tournament_count = defaultdict(int)
         matchups = defaultdict(lambda: defaultdict(int))
+        matchups_count = defaultdict(lambda: defaultdict(int))
 
         if number_of_tournaments is not None:
             tournaments_enum = (random.sample(self.player_classes, number_of_players) for _ in xrange(number_of_tournaments))
@@ -52,7 +53,7 @@ class TournamentRunner(object):
                 for player2 in players_ids:
                     # Number of games player 1 won against player 2
                     matchups[player1][player2] += tournament_results.get(player1, 0)
-
+                    matchups_count[player1][player2] += number_of_games
         if self.verbose:
             print "Finished {} tournaments for {} players.".format(tournament_index + 1, number_of_players)
             for player_id, score in global_results.iteritems():
@@ -62,7 +63,14 @@ class TournamentRunner(object):
         normalized_results = dict([(player_id, 100. * global_results[player_id] / (tournament_count[player_id] * number_of_games))
                                    for player_id in global_results.iterkeys()])
 
-        return normalized_results, matchups
+        normalized_matchups = {}
+
+        for player1 in matchups.keys():
+            normalized_matchups[player1] = {}
+            for player2 in matchups[player1].keys():
+                normalized_matchups[player1][player2] = 100. * matchups[player1][player2] / matchups_count[player1][player2]
+
+        return normalized_results, normalized_matchups
 
     @staticmethod
     def tournament_for_players(players, number_of_games=100):
@@ -133,12 +141,15 @@ def main():
     print "Starting tournament with {} player types".format(len(player_classes))
     tournament_runner = TournamentRunner(player_classes)
     tournament_results, matchups = tournament_runner.tournament()
+
+    print "Match-ups - out of all the matchups where bot1 and bot2 played, how many were won by bot1"
+    print "100 - (Matchups[bot1][bot2] + Matchups[bot2][bot1]) is the percentage of games both lost to a third bot"
+    print "------"
+    pprint.pprint(dict(matchups))
+
     print "Results:"
     for (player_id, win_count) in tournament_results.iteritems():
         print "'{}' won {:2.1f}% of its games".format(player_id, win_count)
-    print "Match-ups (how many times a bot won against each another bot"
-    for player_id in matchups.keys():
-        print "Bot \"{}\" matches: {}".format(player_id, dict(matchups[player_id]))
 
 if __name__ == "__main__":
     sys.exit(main())
